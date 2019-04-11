@@ -3,7 +3,7 @@ Dynamic router for click.js based application
 
 Example:- 
 
-```
+```js
 import {$_Click , app }from 'click-cli';
 import { Router } from '../click-router/router.js';
 
