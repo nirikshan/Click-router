@@ -1,8 +1,17 @@
 export class Route{
-    constructor(component, path , handler){
+    constructor(component, path , handler , src){
         this.component = component;
         this.path = path;
         this.handler = handler;
+        this.src = src;
+    }
+
+    get src(){
+        return this._src;
+    }
+
+    set src(s){
+        this._src = s;
     }
 
     get component(){
