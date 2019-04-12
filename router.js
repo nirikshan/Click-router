@@ -27,6 +27,7 @@ ex = {
     },
 },
 handelChange = function($el , Manage , id , node , ComponentName , ComponentId){
+    console.log('init')
     $el.innerHTML = null;
     Manage($el , ex.now.target.component , id , node.props , ComponentName , ComponentId)
 },
@@ -52,58 +53,6 @@ observeObject = function(data, key, val) {
 init = function init(a) {
     for (const key in a) {
         observeObject(ex, key, a[key]);
-    }
-},
-WatchComponent = function(){
-    var match , got    =  ex.now.parm.split('/').filter((item) => item != '' && item !== '#');
-    for (let j = 0; j < ex.routes.length; j++) {
-        var el     =  ex.routes[j],
-            path   =  el._path,
-            syntax =  path.split('/').filter((item) => item != ''),
-            match  =  {
-                index:0,
-                match:false
-            };        
-            if(got.length > syntax.length || got.length < syntax.length){
-            }else{
-                for (var i = 0; i < got.length; i++) {
-                    var x  =  got[i],
-                        y  =  syntax[i];
-                    if(y[0] !== ':'){//no problem avoiding changing particals  
-                        if(x == y){
-                            match.index = j;
-                            match.match = true;
-                        }else{
-                            match.index = 0;
-                            match.match = false;
-                        }
-                    }
-                }
-            }
-            if(match.match){
-                ex.now.target = (ex.routes[match.index])
-                return;
-            }
-    }
-    ex.now.target = ex.routes['*'];
-},
-Check = function Check() {
-    var def = ex.routes[0],
-        now = CreateNow(ex.mode);
-    if(now == '/' || now == ''){
-        go(def._path)
-    }
-    WatchComponent();
-},
-locate = function(route){
-    ex.now.parm = route;
-    WatchComponent();
-    ex.play = 'Nirikshan Bhusal';
-    if(ex.mode === 'history'){
-        window.history.pushState(null , null , ex.root + route);
-    }else{
-        route = route.replace(/^\//,'');
-        window.location.href = window.location.href.replace(/#(.*)$/,'') + '#/' + route;
     }
 },
 go = function(route){
@@ -132,6 +81,74 @@ match = function(route){
         }
     }
 },
+syncComponent = function(callack){
+    var match , got    =  ex.now.parm.split('/').filter((item) => item != '' && item !== '#');
+    for (let j = 0; j < ex.routes.length; j++) {
+        var el     =  ex.routes[j],
+            path   =  el._path,
+            syntax =  path.split('/').filter((item) => item != ''),
+            match  =  {
+                index:0,
+                match:false
+            };        
+            if(got.length > syntax.length || got.length < syntax.length){
+            }else{
+                for (var i = 0; i < got.length; i++) {
+                    var x  =  got[i],
+                        y  =  syntax[i];
+                    if(y[0] !== ':'){//no problem avoiding changing particals  
+                        if(x == y){
+                            match.index = j;
+                            match.match = true;
+                        }else{
+                            match.index = 0;
+                            match.match = false;
+                        }
+                    }
+                }
+            }
+            if(match.match){
+                ex.now.target = (ex.routes[match.index])
+                return callack(ex.now.target);
+            }
+    }
+    ex.now.target = ex.routes['*'];
+    callack(ex.now.target)
+},
+WatchComponent = function(ax){
+  syncComponent(function (a) {
+      if(a.src && typeof a.src === 'function'){
+        a.src()
+        ax();
+      }else{
+        ax();
+      }
+      setTimeout(function(params) {
+        ex.play = '#1'
+      },50)
+  });
+},
+Check = function Check() {
+    var def = ex.routes[0],
+        now = CreateNow(ex.mode);
+
+    WatchComponent(function() {
+       if(now == '/' || now == ''){
+         go(def._path)
+       } 
+    });
+},
+locate = function(route){
+    ex.now.parm = route;
+    WatchComponent(function() {
+        if(ex.mode === 'history'){
+            window.history.pushState(null , null , ex.root + route);
+        }else{
+            route = route.replace(/^\//,'');
+            window.location.href = window.location.href.replace(/#(.*)$/,'') + '#/' + route;
+        } 
+    });
+},
 Router = function Router(a , b) {
         ex.name = a;
         ex.mode = GetMode(b.mode);
@@ -147,9 +164,9 @@ Router = function Router(a , b) {
 };
 Router.prototype.add = function(route){
     if(route.path == '404'){
-        return ex.routes['*'] = new Route(route.component , route.path , route.handle);
+        return ex.routes['*'] = new Route(route.component , route.path , route.handle , route.src);
     }
-    ex.routes.push(new Route(route.component , route.path , route.handle));
+    ex.routes.push(new Route(route.component , route.path , route.handle , route.src));
 }
 window.addEventListener('popstate', function (e) {
     ex.now.parm = CreateNow(ex.mode);
