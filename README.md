@@ -5,17 +5,18 @@ Example:-
 
 ```js
 import {$_Click , app }from 'click-cli';
-import { Router } from '../click-router/router.js';
+import { Router } from 'click-router';
 
 const router = new Router('router',{
-    root:'http://localhost:8008',
-    mode:'history',
+    root:'http://localhost:8008', //If not given same Url as current URL
+    mode:'history', // If not given history for server and hash for file://
     route:[
         {
+            src:()=>import('./pages/home.js'),
             component:'home' , 
             path:'/home' , 
             handle:(a)=>{ 
-                    console.log('handle this is home' , a)
+                console.log('handle this is home' , a)
             }
         },
         {
@@ -26,6 +27,7 @@ const router = new Router('router',{
             }
         },
         {
+            src:()=>import('./pages/contact.js'),
             component:'contact' , 
             path:'/contact/:id/:class/map' , 
             handle:(a)=>{ 
@@ -48,6 +50,10 @@ new app('parent',{
     </div>`),
 
     state:{
+    },
+
+    fn:{
+
     }
 })
 
@@ -59,5 +65,6 @@ new $_Click('Xprin' ,{
        router
     ]
 }).render('parent');
+
 
 ```
