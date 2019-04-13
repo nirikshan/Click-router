@@ -5,9 +5,9 @@ Example:-
 
 ```js
 import {$_Click , app }from 'click-cli';
-import { Router } from 'click-router';
+import { Router , go } from 'click-router';
 
-const router = new Router('router',{
+const router = new Router('myrouter',{
     root:'http://localhost:8008', //If not given same Url as current URL
     mode:'history', // If not given history for server and hash for file://
     route:[
@@ -46,15 +46,20 @@ const router = new Router('router',{
 
 new app('parent',{
     view: (`<div>
-         <c-top/>
+         <button c-click='home'>home</button>
+         <c-myrouter name='{name}'/>
     </div>`),
 
     state:{
+      name:'nirikshan'
     },
-
+    
     fn:{
-
+     home:function(){
+       go('/contact/123/abcdclass/map')
+     }
     }
+
 })
 
 
