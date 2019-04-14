@@ -22,52 +22,78 @@ ex = {
     root:GetRoot(),
     play:null,
     CurrentUrl:CreateNow(GetMode('history')),
+    RoutsBag:[],
     now:{
       origin:location.origin,
       parm:CreateNow('history'),
     },
 },
-syncComponent = function(callack){
-    var match , got    =  ex.CurrentUrl.split('/').filter((item) => item != '' && item !== '#');
-    for (let j = 0; j < ex.routes.length; j++) {
-        var el     =  ex.routes[j],
-            path   =  el._path,
-            syntax =  path.split('/').filter((item) => item != ''),
-            match  =  {
-                index:0,
+CombineAllRouts = function(route , currentPath , CombinePathA) {
+    var chilldRouts = route.routes;
+    for (let j = 0; j < chilldRouts.length; j++) {
+        const el    =  chilldRouts[j];
+        var   p     =  CombinePathA.concat(el.path.split('/').filter((item) => item != '' && item !== '#'));      
+              el['i'] = p;
+              ex.RoutsBag.push(el);
+        if(el.routes.length > 0){
+          CombineAllRouts( el , currentPath , p);
+        }
+    }
+},
+InterNamCompare = function(route , root , got , syntax , parmeter ) {
+    for (var i = 0; i < got.length; i++) {
+        var x  =  got[i],
+            y  =  syntax[i];
+        if(y[0] !== ':'){//no problem avoiding changing particals and comparing
+            if(x == y){
+                root.match = true;
+                root.item = route
+                root.path = got;
+            }else{
+                 root.match = false;
+                 root.item = null;
+                 root.path = null;
+                 return root;
+            }
+        }else{
+            parmeter[y.substr(1)] = x;    
+        }
+    }  
+    return root;
+},
+FindTargetChild = function(all , callback) {
+    var CurrentPath = ex.CurrentUrl.split('/').filter((item) => item != '' && item !== '#'),
+        count = 0;
+    for (let j = 0; j < all.length; j++) {
+        const el    =  all[j],
+              p     =  el.i,
+              root  = {
                 match:false
             },
-            parmeter = {};        
-            if(got.length > syntax.length || got.length < syntax.length){
-                if(ex.CurrentUrl == '/' || ex.CurrentUrl == ''){
-                    return callack(ex.routes[0] , parmeter);
-                }
-            }else{
-                for (var i = 0; i < got.length; i++) {
-                    var x  =  got[i],
-                        y  =  syntax[i];
-                    if(y[0] !== ':'){//no problem avoiding changing particals  
-                        if(x == y){
-                            match.index = j;
-                            match.match = true;
-                        }else{
-                            match.index = 0;
-                            match.match = false;
-                        }
-                    }else{
-                        parmeter[y.substr(1)] = x;    
+            parameters = {};
+        if(p.length === CurrentPath.length){
+            if(p.toString() == CurrentPath.toString()){
+                return callback(el , parameters)
+            }else if(p.toString().indexOf(':') !== -1){
+                    var result = InterNamCompare(el , root , CurrentPath , p , parameters);
+                    if(result.match){
+                        return callback(result.item ,  parameters)
                     }
-                }
             }
-            if(match.match){
-                return callack(ex.routes[match.index] , parmeter);
+        }else if(CurrentPath.length < p.length){
+            if(CurrentPath.length <= 0 || ex.CurrentUrl == '/' || ex.CurrentUrl == ''){
+                return callback(ex.RoutsBag[0] , parameters)
             }
+        }
+        count = j;
     }
-    callack(ex.routes['*'] , parmeter)
+    if(all.length == (count + 1)){
+       return callback(ex.routes['*'] , {})
+    }
 },
 WatchComponent = function(ax){
-  syncComponent(function (a , b) {
-     if(a.src && typeof a.src === 'function'){
+  FindTargetChild(ex.RoutsBag  , function(a , b) {
+    if(a.src && typeof a.src === 'function'){
         a.src().then(o=>{
             ax(a , b); 
             ex.play = '#1'
@@ -91,8 +117,7 @@ locate = function(route){
     }else{
         route = route.replace(/^\//,'');
         window.location.href = window.location.href.replace(/#(.*)$/,'') + '#/' + route;
-    } 
-    
+    }  
 },
 UrlChange = function() {
     WatchComponent(function(a , b) {
@@ -103,7 +128,7 @@ UrlChange = function() {
 handelChange = function($el , Manage , id , node , ComponentName , ComponentId){
     $el.innerHTML = null;
     Manage($el , ex.now.target.component , id , node.props , ComponentName , ComponentId)
-    typeof ex.now.target.handler == 'function' && ex.now.target.handler()
+    typeof ex.now.target.handler == 'function' && ex.now.target.handler.bind(ex.now.parmeter)();
 },
 observeObject = function(data, key, val) {
     Object.defineProperty(data, key, {
@@ -142,7 +167,8 @@ Router = function Router(a , b) {
         init(ex);
         ex.name = a;
         ex.mode = GetMode(b.mode);
-        b.route.map(el => { this.add(el)});
+        b.routes.map(el => { this.add(el)});
+        CombineAllRouts(ex , {} , []);   
         ex.root = GetRoot(b.root);
         ex.now  = {
              origin:location.origin
@@ -152,9 +178,9 @@ Router = function Router(a , b) {
 };
 Router.prototype.add = function(route){
     if(route.path == '404'){
-        return ex.routes['*'] = new Route(route.component , route.path , route.handle , route.src);
+        return ex.routes['*'] = new Route(route.component , route.path , route.handle , route.src , route.routes);
     }
-    ex.routes.push(new Route(route.component , route.path , route.handle , route.src));
+    ex.routes.push(new Route(route.component , route.path , route.handle , route.src , route.routes));
 }
 window.addEventListener('popstate', function (e) {
     ex.CurrentUrl = CreateNow(ex.mode);
