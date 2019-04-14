@@ -1,9 +1,16 @@
 export class Route{
-    constructor(component, path , handler , src){
+    constructor(component, path , handler , src , childs){
         this.component = component;
         this.path = path;
         this.handler = handler;
         this.src = src;
+        this.routes = [];
+        if(childs){
+            for (let i = 0; i < childs.length; i++) {
+                var el = childs[i];
+                this.routes.push(new Route(el.component , el.path , el.handle , el.src , el.routes))
+            }
+        }
     }
 
     get src(){
@@ -12,6 +19,14 @@ export class Route{
 
     set src(s){
         this._src = s;
+    }
+
+    get routes(){
+        return this._routes;
+    }
+
+    set routes(c){
+        this._routes = c;
     }
 
     get component(){
@@ -38,3 +53,5 @@ export class Route{
         this._handler = val;
     }
 }
+
+
